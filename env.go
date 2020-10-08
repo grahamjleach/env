@@ -5,6 +5,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 var (
@@ -34,6 +35,11 @@ func unmarshalToStruct(v reflect.Value) error {
 		field := iv.Field(i)
 		key := ivType.Field(i).Tag.Get("env")
 		def := ivType.Field(i).Tag.Get("default")
+
+		if field.Type().Name() == "Duration" {
+			setDuration(key, def, field)
+			return nil
+		}
 
 		switch field.Kind() {
 		case reflect.Struct, reflect.Ptr:
@@ -85,5 +91,15 @@ func setInt(key, def string, field reflect.Value) {
 			panic(err)
 		}
 		field.Set(reflect.ValueOf(int(i)))
+	}
+}
+
+func setDuration(key, def string, field reflect.Value) {
+	if env := getEnv(key, def); env != "" {
+		d, err := time.ParseDuration(env)
+		if err != nil {
+			panic(err)
+		}
+		field.Set(reflect.ValueOf(d))
 	}
 }
